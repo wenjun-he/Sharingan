@@ -1,0 +1,114 @@
+---
+title: "Exploratory Analysis to Survival data"
+author: "Wenjun He"
+date: "`r format(Sys.Date(),'%d %B, %Y')`"
+params:
+  excel_path: "/hewenjun/rstudio_work/Sharingan/examples/survival_example/example_survival_data.xlsx"
+  outcome_var_Time: "OS"
+  outcome_var_Status: "Death"
+  
+output:
+  html_notebook:
+    toc: yes
+---
+
+# Background
+
+Exploratory analysis for a survival data. The outcome Variables are `r params$outcome_var_Time` and `r params$outcome_var_Status`. In this analysis, we wanna do four things:
+
+- Data preprocessing
+- Statistical descriptive analysis
+- Univariable analysis
+- Mutivariable analysis including LASSO
+
+<br>
+
+# Step 1 - Data preprocessing
+
+```{r,echo=TRUE, warning=FALSE, message=FALSE}
+library("readxl")
+data_used <- read_excel(params$excel_path)
+
+for (j in colnames(data_used)) {
+  data_used[,j] <- as.numeric(as.matrix(data_used[,j]))
+}
+for (k in 1:length(colnames(data_used))){
+  colnames(data_used)[k] <- gsub("-", "_", colnames(data_used)[k])
+  colnames(data_used)[k] <- gsub("\\...", "col", colnames(data_used)[k])
+}
+```
+
+# Step 2 - Statistical descriptive analysis
+```{r,echo=FALSE, warning=FALSE, message=FALSE}
+source("/hewenjun/rstudio_work/Sharingan/SurvivalAnalysis/surv_describe.R")
+```
+
+```{r,echo=FALSE, warning=FALSE, message=FALSE}
+library(cowplot)
+library(reshape2)
+library(pheatmap)
+outcome_var <- c(params$outcome_var_Time,params$outcome_var_Status)
+surv_describe_res <- surv_describe(data_frame = data_used, outcome_var = outcome_var)
+```
+
+## 2.1 summary information about outcome variables
+```{r,echo=FALSE, warning=FALSE, message=FALSE}
+print(surv_describe_res[[2]], max.tbl.height = 300, method = "render")
+```
+## 2.2 summary information about covariate
+```{r,echo=FALSE, warning=FALSE, message=FALSE}
+print(surv_describe_res[[3]], max.tbl.height = 300, method = "render")
+```
+## 2.3 The distribution of continus variables
+![](`r params$outcome_var_Status`_continus_variable_distribution.jpg)
+
+## 2.4 The box plot of continus variables
+![](`r params$outcome_var_Status`_continus_variable_boxplot.jpg)
+
+## 2.5 The correlation heatmap plot of continus variables
+![](`r params$outcome_var_Status`_correlation_map.jpg)
+
+## 2.6 The bar plot of cateogorical variables
+![](`r params$outcome_var_Status`_categorical_variable_barplot.jpg)
+
+# Step 3 - Univariable analysis
+## 3.1 Results of Univariable analysis for OS and Death
+```{r,echo=FALSE, warning=FALSE, message=FALSE}
+source("/hewenjun/rstudio_work/Sharingan/SurvivalAnalysis/surv_univar.R")
+surv_univar_res <- surv_univar(surv_describe_res[[1]], outcome_var, surv_describe_res[[4]],surv_describe_res[[5]])
+surv_univar_res[[1]]
+```
+## 3.2 Significant variable in univariate analysis
+```{r,echo=FALSE, warning=FALSE, message=FALSE}
+print(surv_univar_res[[2]])
+```
+## 3.3 KM plot for categorical variables
+![](`r params$outcome_var_Status`_survival_KM.jpeg)
+
+## 3.4 box plot for continus variables
+![](`r params$outcome_var_Status`_survival_boxplot.jpeg)
+
+
+# Step 4 - Mutivariable analysis
+## 4.1 Stepwise for model selection when containing all significant variables in univiate analysis.
+```{r,echo=FALSE, warning=FALSE, message=FALSE}
+source("/hewenjun/rstudio_work/Sharingan/SurvivalAnalysis/surv_multivar.R")
+surv_multivar_res <- surv_multivar(surv_describe_res[[1]], outcome_var,surv_univar_res[[2]])
+surv_multivar_res[[1]]
+```
+## 4.2 LASSO
+### 4.2.1 Variables selected by Lasso Cox using C-index metrics
+```{r,echo=FALSE, warning=FALSE, message=FALSE}
+print(surv_multivar_res[[2]])
+```
+
+### 4.2.2 Coefficient of Lasso Cox in optimal lambda
+```{r,echo=FALSE, warning=FALSE, message=FALSE}
+surv_multivar_res[[3]]
+```
+### 4.2.3 Coefficient change as L1 norm in Lasso Cox
+![](`r params$outcome_var_Status`_lasso_coefficient_change.jpeg)
+
+### 4.2.4 Change of C-index
+![](`r params$outcome_var_Status`_lasso_change_of_C_index.jpeg)
+

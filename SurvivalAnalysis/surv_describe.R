@@ -3,8 +3,17 @@
 # Date: Oct 31 2020
 
 surv_describe <- function(data_frame, outcome_var){
-  # For example: outcome_var -> c("OS", "Death")
-  # data_frame: should be dataframe type, not has NAs and has one group outcome variable, and all the data should be numeric
+  # Input:
+    # data_frame: Should be dataframe type, not has NAs and has one group outcome variable, and all the data should be numeric.
+    # outcome_var: Output variables. For example: outcome_var -> c("OS", "Death")
+ 
+  # Return:
+    # data_frame: Categorical variables are set as factor, and the variables with the same number are omitted
+    # dfsum_outcome: Summary information about outcome variables
+    # dfsum_cov: Summary information about  covariables
+    # col_names_categorical: Names of categorical variables
+    # col_names_continuous: Names of continuous variables
+    
   
   ## First specify the packages of interest
   packages = c("summarytools", "ggplot2","reshape2", "pheatmap","cowplot")
@@ -20,7 +29,7 @@ surv_describe <- function(data_frame, outcome_var){
     }
   )
 
-  # Specify Continuous and Cateogorical Variable
+  # Specify Continuous and Categorical Variable
   col_names_continuous <- c()
   col_names_categorical <- c()
   
@@ -47,11 +56,12 @@ surv_describe <- function(data_frame, outcome_var){
   outcome_data <- data_frame[,outcome_var]
   
   # Summary outcome variables
-  dfsum_outcome <- dfSummary(outcome_data)
+  st_options(plain.ascii = FALSE)
+  dfsum_outcome <- dfSummary(outcome_data, valid.col = FALSE, graph.magnif = 0.75)
   # Summary covariates
   dfsum_cov <- dfSummary(covariates_data)
   
-  # Plot the distribution of continus variable
+  # Plot the distribution of continues variable
   plots <- NULL
   for (i in colnames(continue_data)) {
     plots[[i]] <- ggplot(continue_data, aes_string(x=i))+ geom_density(fill = "lightblue", alpha=0.5, show.legend = F)+ theme(axis.text = element_text(size = 20), axis.title = element_text(size=100, face = "bold")) + ylab("")
@@ -72,7 +82,7 @@ surv_describe <- function(data_frame, outcome_var){
   print(pheatmap(cor_matrix, scale = "row",clustering_distance_rows = "correlation"))
   while (!is.null(dev.list()))  dev.off()
 
-  # Bar plots of cateogorical variables
+  # Bar plots of categorical variables
   plots <- NULL
   for (i in colnames(cateogorical_data)) {
     plots[[i]] <- ggplot(cateogorical_data, aes_string(x = i)) + geom_bar(aes_string(fill = i)) + theme(axis.text = element_text(size = 20), axis.title = element_text(size=100, face = "bold")) + ylab("")
@@ -81,5 +91,5 @@ surv_describe <- function(data_frame, outcome_var){
   print(plot_grid(plotlist = plots))
   while (!is.null(dev.list()))  dev.off()
   
-  return(list(data_frame,dfsum_outcome,dfsum_cov))
+  return(list(data_frame[,c(col_names_continuous,col_names_categorical)],dfsum_outcome,dfsum_cov, col_names_categorical,col_names_continuous))
 }
