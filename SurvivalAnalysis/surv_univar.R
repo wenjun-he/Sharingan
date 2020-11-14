@@ -77,7 +77,7 @@ surv_univar <- function(data_frame, outcome_var, col_names_categorical, col_name
     }
   }
   jpeg(file = paste(outcome_var[2], "survival_KM.jpeg", sep = "_"), width = 2100, height = 1500)
-  print(arrange_ggsurvplots(plots_suv, print = TRUE, ncol = 3, nrow = 4, risk.table.height = 0.2))
+  print(arrange_ggsurvplots(plots_suv, print = TRUE, ncol = 4, nrow = 4, risk.table.height = 0.2))
   while (!is.null(dev.list()))  dev.off()
   
   # Box plot for continues variables
