@@ -15,7 +15,7 @@ surv_multivar <- function(data_frame, outcome_var, significant_variable_names){
     # coef_lasso_cox: Coefficient of Lasso regression
   
   ## First specify the packages of interest
-  packages = c("glmnet", "survival")
+  packages = c("glmnet", "survival", "pec")
   
   ## Now load or install&load all
   package.check <- lapply(
@@ -35,8 +35,29 @@ surv_multivar <- function(data_frame, outcome_var, significant_variable_names){
   # Cox regression
   outcome_formula <- paste("Surv(", outcome_var[1], ",", outcome_var[2], ")~")
   fmla <- as.formula(paste(outcome_formula,paste(significant_variable_names, collapse = "+")))
-  res.cox <- coxph(fmla, data = data_frame)
+  res.cox <- coxph(fmla, data = data_frame, x = TRUE)
   res.cox.stepped=step(res.cox, trace = 0)
+  
+  # C-index to evaluate coxph model
+  # browser()
+  c_index_coxph <- cindex(list("Cox-model"=res.cox.stepped),
+                          formula = fmla,
+                          data=data_frame,
+                          eval.times = seq(0,80, 0.5),
+                          splitMethod = "bootcv",
+                          B=1000)
+  jpeg(file = paste(outcome_var[2], "coxph_model_of_C_index.jpeg", sep = "_"), width = 1000, height = 700)
+  plot(c_index_coxph)
+  while (!is.null(dev.list()))  dev.off()
+  
+  # Calibration plot
+  jpeg(file = paste(outcome_var[2], "coxph_model_calibration_plot.jpeg", sep = "_"), width = 1000, height = 700)
+  calPlot(list("Cox-model"=res.cox.stepped),
+          time = 12,
+          data = data_frame,
+          splitMethod = "BootCv",
+          B=1000)
+  while (!is.null(dev.list()))  dev.off()
   
   # Lasso algorithm to get the optimal lambda value
   # In Lasso cox regression, we would like to use all the covariables in regression
